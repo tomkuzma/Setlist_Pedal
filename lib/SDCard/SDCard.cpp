@@ -123,8 +123,8 @@ String readLines(fs::FS &fs, int lineNum, int lineCount, const char *path)
             line += (char)file.read();  // build return string
         }
             // Add End of File tag
-            line.setCharAt(line.length() - 1, '\0');
-            line += "END OF SETLIST";
+            line.setCharAt(line.length(), '\0');
+            line += "\nEND OF SETLIST";
     }
     else
     {

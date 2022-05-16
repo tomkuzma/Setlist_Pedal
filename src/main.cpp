@@ -23,7 +23,7 @@ Date: April 28, 2022
 #include "WiFi.h"
 #include "time.h"
 #include "RTClib.h"
-// #include <Wire.h>
+#include <Wire.h>
 #include "SDCard.h"
 #include "DailyStruggleButton.h"
 #include "SPI.h"
@@ -41,6 +41,9 @@ void buttonEvent_left (byte btnStatus);
 void buttonEvent_right (byte btnStatus);
 void initWiFi();
 void syncTime();
+void printLines(String printString, int txtColour, int bgColour);
+void tftSetup();
+
 
 // FSM states
 enum State {UPDATE_NTP, SERVER_CONNECT, SELECT_FILE, SCROLL_FILE};
@@ -68,16 +71,31 @@ const char* password   = "roti2roti";
 // NTP server to request time
 const char* ntpServer = "pool.ntp.org";
 
+// for sending time to screen ** MAY NOT NEED TO BE GLOBAL
+String timeString = "";
+
 // TFT Object
 TFT_eSPI tft = TFT_eSPI();
-
-// for sending time to screen ** MAY NOT NEED TO BE GLOBAL
-// String timeString = "";
 
 ////////////////SETUP////////////////////////////
 void setup()
 {
     Serial.begin(115200);
+
+//////////////////////////////////////////////
+//     TFT SETUP                            //
+//////////////////////////////////////////////
+    tftSetup();
+
+    // tft.init();
+    // tft.setRotation(3); 
+
+    // tft.fillScreen(TFT_BLACK);
+    // tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    // tft.setCursor(0,120,2);
+    // tft.setFreeFont(FSSB18);
+    // tft.print("- Hello World!!\n- Testing song with long songname here\n- Another Song");
+
 
 //////////////////////////////////////////////
 //      RTC SETUP                           //
@@ -92,7 +110,7 @@ void setup()
 //////////////////////////////////////////////
 //      WIFI SETUP                          //
 ////////////////////////////////////////////// 
-    rtc.begin(); //Start RCT
+    rtc.begin(); //Start RTC
 
     //Wifi
     initWiFi();
@@ -149,8 +167,8 @@ void setup()
     Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
     Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
 
-    lineCount = scanFile(SD, "/test.txt");
-    readLines(SD, startingLine, lineCount, "/test.txt");
+    lineCount = scanFile(SD, "/Setlist C.txt");
+    readLines(SD, startingLine, lineCount, "/Setlist C.txt");
 
 //////////////////////////////////////////////
 //     BUTTONS SETUP                        //
@@ -163,19 +181,11 @@ void setup()
     rightButton.setDebounceTime(DEBOUNCE_TIME);
     rightButton.enableLongPress(PRESS_TIME);
 
-//////////////////////////////////////////////
-//     TFT SETUP                            //
-//////////////////////////////////////////////
-  tft.init();
-  tft.setRotation(3); 
-
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setCursor(0,120,2);
-  tft.setFreeFont(FSSB18);
-  tft.println("- Hello World!!");
-  tft.println("- Testing song with long songname here");
-  tft.println("- Another Song");
+    char buff[] = ":mm AP";  // for time format display
+    timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+    timeString.toLowerCase();
+    Serial.println(timeString);
+    tft.drawString(timeString, 0, 0, 6);
 
 } // end setup
 
@@ -191,10 +201,12 @@ void loop()
 
         // update time string if second changes
         if (now.minute() != prev.minute()) {
-            char buff[] = ":mm:ss AP";  // for time format display
+            char buff[] = ":mm AP";  // for time format display
             prev = now;
-            String timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+            timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+            timeString.toLowerCase();
             Serial.println(timeString);
+            tft.drawString(timeString, 0, 0, 6);
         }
     }
 
@@ -206,7 +218,11 @@ void buttonEvent_left (byte btnStatus){
     {
     case onPress:
         if (startingLine != 0) {
-            readLines(SD, --startingLine, lineCount, "/test.txt"); // decrement starting line and get 3 lines
+            String lines = readLines(SD, --startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
+            Serial.println(lines); 
+
+            // print to ftf
+            printLines(lines,TFT_WHITE,TFT_BLACK);
         }
         break;
 
@@ -224,8 +240,12 @@ void buttonEvent_right (byte btnStatus){
     {
     case onPress:
         if (startingLine < lineCount - 2){
-            readLines(SD, ++startingLine, lineCount, "/test.txt"); // increment starting line and get 3 lines
-        }
+            String lines = readLines(SD, ++startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
+            Serial.println(lines); 
+
+            // print to TFT
+            printLines(lines,TFT_WHITE,TFT_BLACK);   
+            }
         break;
 
     case onLongPress:
@@ -273,3 +293,23 @@ void syncTime() {
     Serial.println(timeString);
 
 } // end syncTime
+
+void printLines(String printString, int txtColour, int bgColour)
+{
+    tft.setTextColor(txtColour,bgColour,true);
+    tft.fillRect(0,60,480,200,bgColour);
+    tft.setCursor(0,120,2);
+    tft.print(printString);
+} // end printLines
+
+void tftSetup()
+{
+    tft.init();
+    tft.setRotation(3); 
+
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.setCursor(0,120,2);
+    tft.setFreeFont(FSSB18);
+
+}// end tftSetup
