@@ -43,7 +43,11 @@ void initWiFi();
 void syncTime();
 void printLines(String printString, int txtColour, int bgColour);
 void tftSetup();
+void updateNTP();
 
+// flags
+enum YesNo {WAIT = 0, YES = 1, NO = 2};
+YesNo selection = WAIT;
 
 // FSM states
 enum State {UPDATE_NTP, SERVER_CONNECT, SELECT_FILE, SCROLL_FILE};
@@ -112,20 +116,20 @@ void setup()
 ////////////////////////////////////////////// 
     rtc.begin(); //Start RTC
 
-    //Wifi
-    initWiFi();
+    // //Wifi
+    // initWiFi();
 
-    //Time Server
-    configTime(0, 0, ntpServer);
+    // //Time Server
+    // configTime(0, 0, ntpServer);
 
-    // sync RTC time with NTP server
-    syncTime();
+    // // sync RTC time with NTP server
+    // syncTime();
     prev = rtc.now();
     now = rtc.now();
 
-    //disconnect WiFi as it's no longer needed
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
+    // //disconnect WiFi as it's no longer needed
+    // WiFi.disconnect(true);
+    // WiFi.mode(WIFI_OFF);
 
 //////////////////////////////////////////////
 //       SD CARD SETUP                      //
@@ -181,81 +185,118 @@ void setup()
     rightButton.setDebounceTime(DEBOUNCE_TIME);
     rightButton.enableLongPress(PRESS_TIME);
 
-    char buff[] = ":mm AP";  // for time format display
-    timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
-    timeString.toLowerCase();
-    Serial.println(timeString);
-    tft.drawString(timeString, 0, 0, 6);
+    // char buff[] = ":mm AP";  // for time format display
+    // timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+    // timeString.toLowerCase();
+    // Serial.println(timeString);
+    // tft.drawString(timeString, 0, 0, 6);
 
 } // end setup
 
 void loop()
 {
-    // button polling
-    lefftButton.poll();
-    rightButton.poll();
 
-    if (millis() - lastTime >= RTC_PERIOD) {
-        now = rtc.now();   // get current time from rtc module
-        lastTime = millis();
+    switch (STATE) {
 
-        // update time string if second changes
-        if (now.minute() != prev.minute()) {
-            char buff[] = ":mm AP";  // for time format display
-            prev = now;
-            timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
-            timeString.toLowerCase();
-            Serial.println(timeString);
-            tft.drawString(timeString, 0, 0, 6);
-        }
+    case UPDATE_NTP:
+        updateNTP();
+    break;
+
+
     }
+    // button polling
+    // lefftButton.poll();
+    // rightButton.poll();
+
+    // if (millis() - lastTime >= RTC_PERIOD) {
+    //     now = rtc.now();   // get current time from rtc module
+    //     lastTime = millis();
+
+    //     // update time string if second changes
+    //     if (now.minute() != prev.minute()) {
+    //         char buff[] = ":mm AP";  // for time format display
+    //         prev = now;
+    //         timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+    //         timeString.toLowerCase();
+    //         Serial.println(timeString);
+    //         tft.drawString(timeString, 0, 0, 6);
+    //     }
+    // }
 
 } // end loop
 
 // 
 void buttonEvent_left (byte btnStatus){
-    switch (btnStatus)
-    {
-    case onPress:
-        if (startingLine != 0) {
-            String lines = readLines(SD, --startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
-            Serial.println(lines); 
 
-            // print to ftf
-            printLines(lines,TFT_WHITE,TFT_BLACK);
-        }
-        break;
+    switch (STATE) {
 
-    case onLongPress:
-        // do nothing currently
-    break;
-    
-    default:
-        break;
-    }
-} // end buttonEvent_left
-
-void buttonEvent_right (byte btnStatus){
-    switch (btnStatus)
-    {
-    case onPress:
-        if (startingLine < lineCount - 2){
-            String lines = readLines(SD, ++startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
-            Serial.println(lines); 
-
-            // print to TFT
-            printLines(lines,TFT_WHITE,TFT_BLACK);   
+        case UPDATE_NTP:
+            if (btnStatus == onPress) {
+                selection = YES;
             }
         break;
 
-    case onLongPress:
-        // lineCount = scanFile(SD, "/test.txt");
-        Serial.println(listDir(SD, "/", 0));
-    break;
-    
-    default:
-        break;
+
     }
+
+
+
+    // switch (btnStatus)
+    // {
+    // case onPress:
+    //     if (startingLine != 0) {
+    //         String lines = readLines(SD, --startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
+    //         Serial.println(lines); 
+
+    //         // print to ftf
+    //         printLines(lines,TFT_WHITE,TFT_BLACK);
+    //     }
+    //     break;
+
+    // case onLongPress:
+    //     // do nothing currently
+    // break;
+    
+    // default:
+    //     break;
+    // }
+} // end buttonEvent_left
+
+void buttonEvent_right (byte btnStatus){
+
+
+    switch (STATE) {
+
+        case UPDATE_NTP:
+            if (btnStatus == onPress) {
+                selection = NO;
+            }
+        break;
+
+
+    }
+
+
+    // switch (btnStatus)
+    // {
+    // case onPress:
+    //     if (startingLine < lineCount - 2){
+    //         String lines = readLines(SD, ++startingLine, lineCount, "/Setlist C.txt"); // decrement starting line and get 3 lines
+    //         Serial.println(lines); 
+
+    //         // print to TFT
+    //         printLines(lines,TFT_WHITE,TFT_BLACK);   
+    //         }
+    //     break;
+
+    // case onLongPress:
+    //     // lineCount = scanFile(SD, "/test.txt");
+    //     Serial.println(listDir(SD, "/", 0));
+    // break;
+    
+    // default:
+    //     break;
+    // }
 } // end buttonEvent_right
 
 // Initialize WiFi
@@ -304,12 +345,66 @@ void printLines(String printString, int txtColour, int bgColour)
 
 void tftSetup()
 {
+    // start tft
     tft.init();
-    tft.setRotation(3); 
+    tft.setRotation(3); // set to landscape
 
+    /// other setup stuff
     tft.fillScreen(TFT_BLACK);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setCursor(0,120,2);
     tft.setFreeFont(FSSB18);
 
 }// end tftSetup
+
+void updateNTP() {
+    char buff[] = ":mm AP";  // for time format display
+    timeString = String(now.twelveHour()) + now.toString(buff); // make nice looking 12 hour time string with no leading zeros
+    timeString.toLowerCase();
+
+    tft.drawCentreString("The time is ",240,20,GFXFF);
+    tft.drawCentreString(timeString,240,70,GFXFF);
+    tft.drawCentreString("Update time using wifi?", 240, 150,GFXFF);
+    tft.setTextDatum(BL_DATUM);
+    tft.drawString("YES",0,320,GFXFF);
+    tft.setTextDatum(BR_DATUM);
+    tft.drawString("NO",480,320,GFXFF);
+
+    while (selection == WAIT){
+        // button polling
+        lefftButton.poll();
+        rightButton.poll();
+    }
+
+    switch (selection) {
+
+        case YES:
+            //Wifi
+            initWiFi();
+
+            //Time Server
+            configTime(0, 0, ntpServer);
+
+            // sync RTC time with NTP server
+            syncTime();
+            prev = rtc.now();
+            now = rtc.now();
+
+            //disconnect WiFi as it's no longer needed
+            WiFi.disconnect(true);
+            WiFi.mode(WIFI_OFF);
+
+            selection = WAIT;
+        break;
+
+        case NO:
+            prev = rtc.now();
+            now = rtc.now();
+
+            selection = WAIT;
+        break;
+
+
+    }
+
+}
