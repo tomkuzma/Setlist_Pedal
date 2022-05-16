@@ -13,8 +13,8 @@ Date: April 28, 2022
 //////////////////////////    ////////////////////////////
 // VCC      |   5V      //    //   VCC      |   5V      //               
 // GND      |   GND     //    //   GND      |   GND     //                
-//  SCK     |  GPIO 18  //    //   SCL      |   GPIO 21 //                
-//  MISO    |  GPIO 19  //    //   SDA      |   GPIO 22 //                 
+//  SCK     |  GPIO 18  //    //   SCL      |   GPIO 22 //                
+//  MISO    |  GPIO 19  //    //   SDA      |   GPIO 21 //                 
 //  MOSI    |  GPIO 23  //    ////////////////////////////                   
 //  CS      |  GPIO 5   //    
 //////////////////////////    
@@ -23,10 +23,12 @@ Date: April 28, 2022
 #include "WiFi.h"
 #include "time.h"
 #include "RTClib.h"
-#include <Wire.h>
+// #include <Wire.h>
 #include "SDCard.h"
 #include "DailyStruggleButton.h"
 #include "SPI.h"
+#include <TFT_eSPI.h>
+#include "Free_Fonts.h"
 
 #define LEFT_BUTTON_PIN     16
 #define RIGHT_BUTTON_PIN    17
@@ -65,6 +67,9 @@ const char* password   = "roti2roti";
 
 // NTP server to request time
 const char* ntpServer = "pool.ntp.org";
+
+// TFT Object
+TFT_eSPI tft = TFT_eSPI();
 
 // for sending time to screen ** MAY NOT NEED TO BE GLOBAL
 // String timeString = "";
@@ -157,6 +162,20 @@ void setup()
     rightButton.set(RIGHT_BUTTON_PIN, buttonEvent_right, INT_PULL_UP);
     rightButton.setDebounceTime(DEBOUNCE_TIME);
     rightButton.enableLongPress(PRESS_TIME);
+
+//////////////////////////////////////////////
+//     TFT SETUP                            //
+//////////////////////////////////////////////
+  tft.init();
+  tft.setRotation(3); 
+
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setCursor(0,120,2);
+  tft.setFreeFont(FSSB18);
+  tft.println("- Hello World!!");
+  tft.println("- Testing song with long songname here");
+  tft.println("- Another Song");
 
 } // end setup
 
