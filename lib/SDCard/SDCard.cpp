@@ -6,6 +6,7 @@ static int lineLocation[MAX_LINES]; // array for keying location value of each l
 
 /////////////////// listDir /////////////////////////////////////////////////////////////////////////
 // returns list of filenames as a string. Deals with hidden files created from Apple/Linux systems.
+// As of right now, will only return list of .txt files. 
 // Args:    fs      - FS object
 //          dirname - file path
 //          levels  - # of levels to look into 
@@ -39,8 +40,8 @@ String listDir(fs::FS &fs, const char *dirname, uint8_t levels)
             // Get filename
             fileName = file.name();
 
-            // Ommit OSX directory hidden files
-            if (!fileName.startsWith(".")) {
+            // Omit OSX directory hidden files and only add txt files
+            if (!fileName.startsWith(".") && fileName.endsWith(".txt")) {
                 fileList += (fileName + '\n'); // add filename to return string
             }
         // move to next file or dir

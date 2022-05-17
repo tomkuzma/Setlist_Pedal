@@ -202,6 +202,13 @@ void loop()
         updateNTP();
     break;
 
+    case SELECT_FILE:
+        // get files in directory as string
+        String filenames = listDir(SD, "/", 0);
+
+
+    break;
+
 
     }
     // button polling
